@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Configuration (contains secrets)
+config.yaml
+*.json
+!requirements*.txt
+!package*.json
+
+# Credentials
+client_secrets.json
+youtube_credentials.json
+instagram_session_*.json
+
+# Generated files
+scheduled_posts.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
