@@ -1,8 +1,3 @@
-"""
-LinkedIn Post Automation Module
-Handles posting text, images, and scheduling for LinkedIn
-"""
-
 import os
 import logging
 import requests
@@ -129,11 +124,11 @@ class LinkedInAutomation:
     def post_with_image(self, text: str, image_path: str) -> Optional[Dict[str, Any]]:
         """
         Post text with image to LinkedIn
-        
+
         Args:
             text: Text content to post
             image_path: Path to the image file
-            
+
         Returns:
             dict: Post information if successful, None otherwise
         """
@@ -141,7 +136,7 @@ class LinkedInAutomation:
             if not os.path.exists(image_path):
                 logger.error(f"Image file not found: {image_path}")
                 return None
-            
+
             # Step 1: Register upload
             register_endpoint = "assets?action=registerUpload"
             register_data = {
@@ -156,17 +151,17 @@ class LinkedInAutomation:
                     ]
                 }
             }
-            
+
             logger.info("Registering image upload to LinkedIn")
             register_result = self._make_request(register_endpoint, method="POST", data=register_data)
-            
+
             if not register_result or "value" not in register_result:
                 logger.error("Failed to register image upload")
                 return None
-            
+
             upload_url = register_result["value"]["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
             asset_urn = register_result["value"]["asset"]
-            
+
             # Step 2: Upload image
             logger.info("Uploading image to LinkedIn")
             with open(image_path, 'rb') as img_file:
@@ -175,7 +170,7 @@ class LinkedInAutomation:
                 }
                 upload_response = requests.put(upload_url, headers=upload_headers, data=img_file)
                 upload_response.raise_for_status()
-            
+
             # Step 3: Create post with image
             endpoint = "ugcPosts"
             data = {
@@ -205,10 +200,10 @@ class LinkedInAutomation:
                     "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
                 }
             }
-            
+
             logger.info("Creating LinkedIn post with image")
             result = self._make_request(endpoint, method="POST", data=data)
-            
+
             if result and "id" in result:
                 logger.info(f"Successfully posted to LinkedIn with image. Post ID: {result['id']}")
                 return {
@@ -222,7 +217,111 @@ class LinkedInAutomation:
                     'success': False,
                     'error': 'Unknown error'
                 }
-                
+
+        except Exception as e:
+            logger.error(f"Error posting to LinkedIn: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def post_with_video(self, text: str, video_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Post text with video to LinkedIn
+
+        Args:
+            text: Text content to post
+            video_path: Path to the video file
+
+        Returns:
+            dict: Post information if successful, None otherwise
+        """
+        try:
+            if not os.path.exists(video_path):
+                logger.error(f"Video file not found: {video_path}")
+                return None
+
+            # Step 1: Register upload for video
+            register_endpoint = "assets?action=registerUpload"
+            register_data = {
+                "registerUploadRequest": {
+                    "recipes": ["urn:li:digitalmediaRecipe:feedshare-video"],
+                    "owner": self.person_urn,
+                    "serviceRelationships": [
+                        {
+                            "relationshipType": "OWNER",
+                            "identifier": "urn:li:userGeneratedContent"
+                        }
+                    ]
+                }
+            }
+
+            logger.info("Registering video upload to LinkedIn")
+            register_result = self._make_request(register_endpoint, method="POST", data=register_data)
+
+            if not register_result or "value" not in register_result:
+                logger.error("Failed to register video upload")
+                return None
+
+            upload_url = register_result["value"]["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
+            asset_urn = register_result["value"]["asset"]
+
+            # Step 2: Upload video
+            logger.info("Uploading video to LinkedIn")
+            with open(video_path, 'rb') as video_file:
+                upload_headers = {
+                    "Authorization": f"Bearer {self.access_token}"
+                }
+                upload_response = requests.put(upload_url, headers=upload_headers, data=video_file)
+                upload_response.raise_for_status()
+
+            # Step 3: Create post with video
+            endpoint = "ugcPosts"
+            data = {
+                "author": self.person_urn,
+                "lifecycleState": "PUBLISHED",
+                "specificContent": {
+                    "com.linkedin.ugc.ShareContent": {
+                        "shareCommentary": {
+                            "text": text
+                        },
+                        "shareMediaCategory": "VIDEO",
+                        "media": [
+                            {
+                                "status": "READY",
+                                "description": {
+                                    "text": text[:200]  # Description limited to 200 chars
+                                },
+                                "media": asset_urn,
+                                "title": {
+                                    "text": "Video"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "visibility": {
+                    "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+                }
+            }
+
+            logger.info("Creating LinkedIn post with video")
+            result = self._make_request(endpoint, method="POST", data=data)
+
+            if result and "id" in result:
+                logger.info(f"Successfully posted to LinkedIn with video. Post ID: {result['id']}")
+                return {
+                    'success': True,
+                    'post_id': result['id'],
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                logger.error("Failed to post to LinkedIn")
+                return {
+                    'success': False,
+                    'error': 'Unknown error'
+                }
+
         except Exception as e:
             logger.error(f"Error posting to LinkedIn: {e}")
             return {

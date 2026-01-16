@@ -1,375 +1,201 @@
-# Social Media Automation & Scheduling
+# 🤖 Social Media Automation with AI
 
-A Python-based automation tool for scheduling and posting content to Instagram, Facebook, YouTube, and LinkedIn. This tool allows you to schedule posts across multiple platforms without using n8n.
+**One-click setup for automated content creation and posting to Instagram, Facebook, YouTube, and LinkedIn using Google Gemini AI.**
 
-## Features
+## ✨ Features
 
-- ✅ **Instagram**: Post photos and carousels with captions
-- ✅ **Facebook**: Post text and images to Facebook Pages
-- ✅ **YouTube**: Upload and schedule videos
-- ✅ **LinkedIn**: Post text and images
-- ✅ **Unified Scheduler**: Schedule posts across all platforms
-- ✅ **No n8n Required**: Pure Python implementation
+- 🎨 **AI Content Generation**: Create images, videos, and presentations with Google Gemini
+- 📱 **Multi-Platform Posting**: Instagram, Facebook, YouTube, LinkedIn
+- 🔄 **Automated Workflow**: Generate → Store → Post in one command
+- 📊 **Excel Management**: Track prompts, captions, and posting status
+- ☁️ **Cloud Storage**: Automatic Google Drive integration
+- 🎯 **Separate Prompts**: Technical prompts for AI, custom captions for social media
 
-## Quick Start
+## 🚀 Quick Start (3 minutes)
 
-1. **Install dependencies:**
+```bash
+# 1. Clone or download the project
+# 2. Run the interactive setup wizard
+python setup.py
+
+# 3. Follow the prompts to connect your accounts:
+#    - Google Gemini & Drive (required)
+#    - Instagram, Facebook, YouTube, LinkedIn (optional)
+
+# 4. Edit the Excel file with your content
+# Location: gemini_automation/gemini_automation/prompts.xlsx
+
+# 5. Generate and post content
+python generatepost.py --platforms youtube instagram
+```
+
+**That's it!** 🎉 Your AI-powered social media automation is ready.
+
+## 📋 Prerequisites
+
+- Python 3.8+
+- Google account with Gemini access
+- Social media accounts (optional, setup wizard will guide you)
+
+## 🎯 Usage
+
+### Step 1: Initial Setup (One-time)
+```bash
+python setup.py
+```
+Interactive wizard guides you through connecting all your accounts.
+
+### Step 2: Add Content to Excel
+Edit `gemini_automation/gemini_automation/prompts.xlsx`:
+
+| Prompt | Type | Caption | Status |
+|--------|------|---------|--------|
+| "A beautiful sunset over mountains" | VIDEO | "Check out this amazing AI-generated sunset! 🌅 #Nature #AI" | Pending |
+
+### Step 3: Generate & Post
+```bash
+# Generate content and post to platforms
+python generatepost.py --platforms youtube instagram facebook
+
+# Options
+python generatepost.py --help
+```
+
+### Available Commands
+- `python setup.py` - Interactive account setup wizard
+- `python generatepost.py` - Generate content and post
+- `python generatepost.py --dry-run` - Preview without posting
+
+### Separate Workflows (Legacy)
+
+#### Generate Content (Gemini Automation)
+```bash
+# In gemini_automation/gemini_automation/
+python runner.py
+```
+This processes `prompts.xlsx` and generates content based on Type (IMAGE/VIDEO/PPT).
+
+### Post Generated Content (Integrated)
+```bash
+# Post all completed tasks to all platforms
+python post_from_drive.py
+
+# Post only images to Facebook and LinkedIn
+python post_from_drive.py --type image --platforms facebook linkedin
+
+# Post specific content by prompt text
+python post_from_drive.py --prompt "sunset over mountains"
+
+# Dry run to see what would be posted
+python post_from_drive.py --dry-run
+```
+
+## Content Types Supported
+
+- **IMAGE**: Downloads PNG files and posts as images
+- **VIDEO**: Downloads MP4 files and posts to YouTube
+  - When YouTube is selected as a platform, Gemini automatically generates:
+    - **Title**: Catchy YouTube title (max 100 chars)
+    - **Description**: Engaging description (max 5000 chars)
+    - **Tags**: 5-10 relevant tags
+- **PPT**: Downloads as PDF, posts link in text (PDFs not directly supported by platforms)
+
+## 📊 Excel Content Management
+
+Your content is managed in: `gemini_automation/gemini_automation/prompts.xlsx`
+
+### Column Structure
+
+| Column | Description | Required | Example |
+|--------|-------------|----------|---------|
+| **Prompt** | Technical prompt for Gemini AI | Yes | "A cinematic drone shot of a forest" |
+| **Type** | Content type: IMAGE, VIDEO, PPT | Yes | "VIDEO" |
+| **Caption** | Social media post text | Yes | "🌲 Explore nature's beauty! #NatureVibes" |
+| **Status** | Auto-managed: Pending → Running → Completed | Auto | "Pending" |
+| **Drive_Link** | Auto-generated Google Drive link | Auto | Auto-filled |
+| **Posted_Status** | Posting results | Auto | "Posted to instagram, facebook" |
+
+### How It Works
+- **Prompt** → Sent to Gemini for content generation
+- **Caption** → Used as the social media post text
+- **Type** → Determines generation method (image/video/PPT)
+- Status tracking prevents duplicate processing
+
+### Adding Content
+1. Open the Excel file
+2. Add rows with your prompts and captions
+3. Set Status to "Pending"
+4. Save and run `python generatepost.py`
+
+**Important**: The **Prompt** column is used for AI content generation, while the **Caption** column is used for social media posting text.
+
+## Workflow Example
+
+### Unified Workflow (Recommended)
+1. **Prepare Excel**:
+   - Edit `gemini_automation/gemini_automation/prompts.xlsx`
+   - Add row with: Prompt (for AI generation), Type (IMAGE/VIDEO/PPT), Caption (posting text), Status='Pending'
+
+2. **One Command - Generate + Post**:
    ```bash
-   pip install -r requirements.txt
+   python generatepost.py --platforms instagram facebook linkedin
    ```
+   - Uses **Prompt** column for Gemini content generation
+   - Uses **Caption** column for social media posting text
+   - Automatically generates content, uploads to Drive, posts to platforms
+   - Updates Excel with completion status
 
-2. **Configure platforms** in `config.yaml`
+### Separate Workflow (Legacy)
+1. **Prepare Prompts**: Same as above
 
-3. **See [COMPLETE_GUIDE.md](COMPLETE_GUIDE.md) for full instructions**
+2. **Generate Content**:
+   ```bash
+   cd gemini_automation/gemini_automation
+   python runner.py
+   ```
+   - Status changes to 'Completed' with Drive links
 
-## Quick Commands
-
-**Post to all platforms:**
-```bash
-python post_all_platforms.py "Hello from all platforms!"
-```
-
-**Schedule a post:**
-```bash
-python main.py schedule --platform linkedin --type text --time "2024-01-15T10:00:00" --content '{"text": "Hello!"}'
-```
-
-**Run scheduler:**
-```bash
-python main.py run
-```
-
-**For complete guide, see [COMPLETE_GUIDE.md](COMPLETE_GUIDE.md)**
-
-## Platform Setup
-
-### Instagram
-
-1. Use your Instagram username and password
-2. The tool will handle 2FA challenges (you may need to verify manually on first login)
-3. Session will be saved for future use
-
-**config.yaml**:
-```yaml
-instagram:
-  username: "your_username"
-  password: "your_password"
-  enabled: true
-```
-
-### Facebook
-
-1. Create a Facebook App at [Facebook Developers](https://developers.facebook.com/)
-2. Get a Page Access Token with `pages_manage_posts` permission
-3. Get your Page ID from your Facebook Page settings
-
-**config.yaml**:
-```yaml
-facebook:
-  access_token: "your_page_access_token"
-  page_id: "your_page_id"
-  enabled: true
-```
-
-**How to get Facebook Page Access Token**:
-1. Go to [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
-2. Select your app
-3. Add `pages_manage_posts` permission
-4. Generate token for your page
-5. Use the generated token
-
-### YouTube
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable YouTube Data API v3
-4. Create OAuth 2.0 credentials (Desktop app)
-5. Download `client_secrets.json` and place it in the project root
-6. Run authentication once - it will open a browser for authorization
-
-**config.yaml**:
-```yaml
-youtube:
-  client_secrets_file: "client_secrets.json"
-  credentials_file: "youtube_credentials.json"
-  enabled: true
-```
-
-### LinkedIn
-
-1. Create a LinkedIn App at [LinkedIn Developers](https://www.linkedin.com/developers/)
-2. Request access to Marketing Developer Platform
-3. Generate an access token with `w_member_social` permission
-4. Get your Person URN (format: `urn:li:person:xxxxx`)
-
-**config.yaml**:
-```yaml
-linkedin:
-  access_token: "your_access_token"
-  person_urn: "urn:li:person:xxxxx"
-  enabled: true
-```
-
-## Usage
-
-### Test Platform Connection
-
-```bash
-python main.py test --platform instagram
-python main.py test --platform facebook
-python main.py test --platform youtube
-python main.py test --platform linkedin
-```
-
-### Schedule a Post
-
-**Instagram Photo**:
-```bash
-python main.py schedule --platform instagram --type photo --time "2024-01-15T10:00:00" --content '{"image_path": "path/to/image.jpg", "caption": "My awesome post!"}'
-```
-
-**Facebook Text Post**:
-```bash
-python main.py schedule --platform facebook --type text --time "2024-01-15T10:00:00" --content '{"message": "Hello Facebook!"}'
-```
-
-**Facebook Photo Post**:
-```bash
-python main.py schedule --platform facebook --type photo --time "2024-01-15T10:00:00" --content '{"image_path": "path/to/image.jpg", "message": "Check out this image!"}'
-```
-
-**YouTube Video**:
-```bash
-python main.py schedule --platform youtube --type video --time "2024-01-15T10:00:00" --content '{"video_path": "path/to/video.mp4", "title": "My Video", "description": "Video description", "tags": ["tag1", "tag2"], "privacy_status": "public"}'
-```
-
-**LinkedIn Text Post**:
-```bash
-python main.py schedule --platform linkedin --type text --time "2024-01-15T10:00:00" --content '{"text": "Hello LinkedIn!"}'
-```
-
-**LinkedIn Image Post**:
-```bash
-python main.py schedule --platform linkedin --type image --time "2024-01-15T10:00:00" --content '{"text": "Check this out!", "image_path": "path/to/image.jpg"}'
-```
-
-**Instagram Carousel**:
-```bash
-python main.py schedule --platform instagram --type carousel --time "2024-01-15T10:00:00" --content '{"image_paths": ["img1.jpg", "img2.jpg", "img3.jpg"], "caption": "Carousel post!"}'
-```
-
-### Run the Scheduler
-
-Start the scheduler to automatically post scheduled content:
-
-```bash
-python main.py run
-```
-
-The scheduler will:
-- Check for scheduled posts every 60 seconds (configurable in `config.yaml`)
-- Execute posts when their scheduled time arrives
-- Save post status and results
-
-### List Scheduled Posts
-
-```bash
-# List all posts
-python main.py list
-
-# List only scheduled posts
-python main.py list --status scheduled
-
-# List only posted posts
-python main.py list --status posted
-
-# List failed posts
-python main.py list --status failed
-```
-
-## Project Structure
-
-```
-.
-├── main.py                 # CLI entry point
-├── scheduler.py            # Unified scheduler
-├── config.yaml            # Configuration file
-├── requirements.txt       # Python dependencies
-├── platforms/
-│   ├── __init__.py
-│   ├── instagram.py       # Instagram automation
-│   ├── facebook.py        # Facebook automation
-│   ├── youtube.py         # YouTube automation
-│   └── linkedin.py        # LinkedIn automation
-├── scheduled_posts.json   # Scheduled posts database (auto-generated)
-└── README.md             # This file
-```
-
-## Important Notes
-
-### Security
-- Never commit `.env`, `config.yaml`, or credential files to version control
-- Keep your access tokens secure
-- Use environment variables for sensitive data in production
-
-### Rate Limits
-- Each platform has rate limits. Be mindful of:
-  - **Instagram**: ~100 posts per day
-  - **Facebook**: Varies by account type
-  - **YouTube**: 6 uploads per day (unverified accounts)
-  - **LinkedIn**: Varies by account type
-
-### Scheduling
-- Scheduled times should be in ISO format: `YYYY-MM-DDTHH:MM:SS`
-- Times are checked every 60 seconds by default
-- Posts are executed when scheduled time arrives (within 1 minute window)
-
-### Instagram
-- First login may require manual verification
-- Session is saved for future use
-- Images must be at least 320x320 pixels
-- Carousels support 2-10 images
-
-### Facebook
-- Requires Page Access Token (not User Access Token)
-- Scheduled posts are published automatically by Facebook
-- Image formats: JPG, PNG, GIF
-
-### YouTube
-- First authentication opens browser for OAuth
-- Credentials are saved after first auth
-- Videos must meet YouTube's requirements
-- Scheduled videos are set to private until publish time
-
-### LinkedIn
-- Requires Marketing Developer Platform access
-- Image upload uses multi-step process
-- Text posts are immediate (LinkedIn doesn't support native scheduling)
+3. **Post to Social Media**:
+   ```bash
+   cd ../..  # Back to hive root
+   python post_from_drive.py --platforms instagram facebook linkedin
+   ```
 
 ## Troubleshooting
 
-### Instagram Login Issues
-- If you see "Challenge Required", verify your account manually
-- Check if 2FA is enabled and handle it appropriately
-- Session files may need to be deleted and recreated
+### Drive Download Issues
+- Ensure Gemini automation completed successfully
+- Check network connectivity for large files
+- Verify Google Drive permissions
 
-### Facebook API Errors
-- Verify your Page Access Token has correct permissions
-- Check if token is expired (tokens may expire)
-- Ensure Page ID is correct
+### Platform Posting Issues
+- Check `config.yaml` credentials
+- Verify platform API permissions
+- For Instagram: May require manual session refresh
+- For Facebook: Ensure Page Access Token is valid
 
-### YouTube Authentication
-- Make sure `client_secrets.json` is in the project root
-- First run will open browser - complete OAuth flow
-- Check Google Cloud Console for API quota
+### PPT/Content Issues
+- PPT files are converted to PDF
+- Social platforms don't support PDF posting directly
+- Content is posted as text with link
 
-### LinkedIn API Errors
-- Verify access token has `w_member_social` permission
-- Check if Person URN format is correct
-- Ensure Marketing Developer Platform access is granted
-
-## License
-
-This project is provided as-is for educational and personal use.
-
-## Disclaimer
-
-This tool automates social media posting. Please:
-- Follow each platform's Terms of Service
-- Respect rate limits
-- Don't spam or post inappropriate content
-- Use responsibly
-
-# automate_socialmedia_post
-
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## File Structure After Integration
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/ShreeAishwarya123/automate_socialmedia_post.git
-git branch -M main
-git push -uf origin main
+hive/
+├── gemini_automation/           # Gemini content generation
+├── downloaded_content/          # Cached downloads from Drive
+├── gemini_reader.py            # Excel reader
+├── drive_downloader.py         # Drive download utility
+├── post_from_drive.py          # Main integration script
+├── platforms/                  # Posting platforms
+├── config.yaml                # Platform configurations
+└── requirements.txt           # Updated dependencies
 ```
 
-## Integrate with your tools
+## Future Enhancements
 
-* [Set up project integrations](https://gitlab.com/ShreeAishwarya123/automate_socialmedia_post/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- Add posting status tracking back to Excel
+- Support for more content types
+- PDF to image conversion for better posting
+- Automated scheduling integration

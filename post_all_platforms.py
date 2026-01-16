@@ -31,68 +31,76 @@ def load_config():
         print(f"[ERROR] Could not load config.yaml: {e}")
         return None
 
-def post_to_instagram(text: str, image_path: Optional[str] = None, image_paths: Optional[List[str]] = None):
+def post_to_instagram(text: str, image_path: Optional[str] = None, image_paths: Optional[List[str]] = None, video_path: Optional[str] = None, post_type: str = "feed"):
     """Post to Instagram"""
     config = load_config()
     if not config:
         return {'success': False, 'error': 'Could not load config'}
-    
+
     instagram_config = config.get('instagram', {})
     if not instagram_config.get('enabled', False):
         return {'success': False, 'error': 'Instagram is disabled'}
-    
+
     try:
         instagram = InstagramAutomation(
             instagram_config.get('username', ''),
             instagram_config.get('password', '')
         )
-        
+
         if not instagram.login():
             return {'success': False, 'error': 'Instagram login failed'}
-        
-        if image_paths and len(image_paths) > 1:
+
+        if video_path:
+            # Video post - use Reels for short videos or regular video
+            if post_type.lower() == "reels":
+                result = instagram.post_reels(video_path, text)
+            else:
+                result = instagram.post_video(video_path, text)
+        elif image_paths and len(image_paths) > 1:
             # Carousel post
             result = instagram.post_carousel(image_paths, text)
         elif image_path:
             # Single photo post
             result = instagram.post_photo(image_path, text)
         else:
-            return {'success': False, 'error': 'Instagram requires an image'}
-        
+            return {'success': False, 'error': 'Instagram requires an image or video'}
+
         if result and result.get('success'):
             return {'success': True, 'platform': 'Instagram', 'result': result}
         else:
             return {'success': False, 'error': result.get('error', 'Unknown error') if result else 'No result'}
-            
+
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
-def post_to_facebook(text: str, image_path: Optional[str] = None):
+def post_to_facebook(text: str, image_path: Optional[str] = None, video_path: Optional[str] = None):
     """Post to Facebook"""
     config = load_config()
     if not config:
         return {'success': False, 'error': 'Could not load config'}
-    
+
     facebook_config = config.get('facebook', {})
     if not facebook_config.get('enabled', False):
         return {'success': False, 'error': 'Facebook is disabled'}
-    
+
     try:
         facebook = FacebookAutomation(
             facebook_config.get('access_token', ''),
             facebook_config.get('page_id', '')
         )
-        
-        if image_path:
+
+        if video_path:
+            result = facebook.post_video(video_path, text)
+        elif image_path:
             result = facebook.post_photo(image_path, text)
         else:
             result = facebook.post_text(text)
-        
+
         if result and result.get('success'):
             return {'success': True, 'platform': 'Facebook', 'result': result}
         else:
             return {'success': False, 'error': result.get('error', 'Unknown error') if result else 'No result'}
-            
+
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
@@ -132,16 +140,16 @@ def post_to_youtube(video_path: str, title: str, description: str = "", tags: Op
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
-def post_to_linkedin(text: str, image_path: Optional[str] = None):
+def post_to_linkedin(text: str, image_path: Optional[str] = None, video_path: Optional[str] = None):
     """Post to LinkedIn"""
     config = load_config()
     if not config:
         return {'success': False, 'error': 'Could not load config'}
-    
+
     linkedin_config = config.get('linkedin', {})
     if not linkedin_config.get('enabled', False):
         return {'success': False, 'error': 'LinkedIn is disabled'}
-    
+
     try:
         # Use constants if available, otherwise use config
         if USE_LINKEDIN_CONSTANTS:
@@ -150,22 +158,24 @@ def post_to_linkedin(text: str, image_path: Optional[str] = None):
         else:
             token = linkedin_config.get('access_token', '')
             urn = linkedin_config.get('person_urn', '')
-        
+
         if not token or not urn:
             return {'success': False, 'error': 'LinkedIn credentials not found'}
-        
+
         linkedin = LinkedInAutomation(token, urn)
-        
-        if image_path:
+
+        if video_path:
+            result = linkedin.post_with_video(text, video_path)
+        elif image_path:
             result = linkedin.post_with_image(text, image_path)
         else:
             result = linkedin.post_text(text)
-        
+
         if result and result.get('success'):
             return {'success': True, 'platform': 'LinkedIn', 'result': result}
         else:
             return {'success': False, 'error': result.get('error', 'Unknown error') if result else 'No result'}
-            
+
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
@@ -212,15 +222,18 @@ def post_to_all(text: str, image_path: Optional[str] = None, video_path: Optiona
         
         try:
             if platform_lower == 'instagram':
-                if image_paths:
+                if video_path:
+                    # Post video as Reels by default
+                    result = post_to_instagram(text, video_path=video_path, post_type="reels")
+                elif image_paths:
                     result = post_to_instagram(text, image_paths=image_paths)
                 elif image_path:
                     result = post_to_instagram(text, image_path=image_path)
                 else:
-                    result = {'success': False, 'error': 'Instagram requires an image'}
+                    result = {'success': False, 'error': 'Instagram requires an image or video'}
                     
             elif platform_lower == 'facebook':
-                result = post_to_facebook(text, image_path)
+                result = post_to_facebook(text, image_path, video_path)
                 
             elif platform_lower == 'youtube':
                 if not video_path:
@@ -229,7 +242,7 @@ def post_to_all(text: str, image_path: Optional[str] = None, video_path: Optiona
                     result = post_to_youtube(video_path, title or text, description, tags)
                     
             elif platform_lower == 'linkedin':
-                result = post_to_linkedin(text, image_path)
+                result = post_to_linkedin(text, image_path, video_path)
                 
             else:
                 result = {'success': False, 'error': f'Unknown platform: {platform}'}

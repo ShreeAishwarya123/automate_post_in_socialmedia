@@ -1,5 +1,0 @@
-Placeholder for sample_video.mp4
-Size: 1280x720
-Duration: 10 seconds
-
-To create actual video, install ffmpeg and run this script again.
