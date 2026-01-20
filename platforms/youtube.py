@@ -40,17 +40,20 @@ class YouTubeAutomation:
     def authenticate(self) -> bool:
         """
         Authenticate with YouTube API
-        
+
         Returns:
             bool: True if authentication successful
         """
         try:
+            print(f"YouTube Auth: Checking file: {self.credentials_file}", flush=True)
             creds = None
-            
+
             # Load existing credentials
             if os.path.exists(self.credentials_file):
+                print(f"YouTube Auth: File exists, loading...", flush=True)
                 with open(self.credentials_file, 'rb') as token:
                     creds = pickle.load(token)
+                print(f"YouTube Auth: Credentials loaded successfully", flush=True)
             
             # If no valid credentials, get new ones
             if not creds or not creds.valid:

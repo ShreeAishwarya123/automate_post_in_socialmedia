@@ -1,20 +1,24 @@
-# Core dependencies
-requests>=2.31.0
-pyyaml>=6.0.0
-schedule>=1.2.0
-python-dotenv>=1.0.0
-Pillow>=10.0.0
+fastapi==0.128.0
+uvicorn==0.40.0
+sqlalchemy==2.0.45
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+python-decouple==3.8
+pydantic==2.5.0
+pydantic-settings==2.1.0
+httpx==0.25.2
+aiofiles==23.2.1
+jinja2==3.1.2
+apscheduler==3.10.4
 
-# Instagram automation
-instagrapi>=2.0.0
-
-# Facebook automation
-facebook-sdk>=3.1.0
-
-# YouTube automation
-google-api-python-client>=2.100.0
-google-auth-httplib2>=0.1.1
-google-auth-oauthlib>=1.1.0
-
-# LinkedIn uses direct API calls (no external package needed)
-
+# Existing dependencies
+pandas==2.1.4
+openpyxl==3.1.2
+playwright==1.40.0
+google-api-python-client==2.108.0
+google-auth-oauthlib==1.2.0
+instagrapi==1.17.1
+Pillow==10.1.0
+requests==2.31.0
+pyyaml==6.0.1

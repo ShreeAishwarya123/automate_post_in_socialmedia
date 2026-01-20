@@ -200,31 +200,31 @@ class FacebookAutomation:
     def post_photo(self, image_path: str, message: str = "", scheduled_time: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Post photo to Facebook Page
-        
+
         Args:
             image_path: Path to the image file
             message: Caption for the photo
             scheduled_time: ISO format datetime string for scheduling (optional)
-            
+
         Returns:
             dict: Post information if successful, None otherwise
         """
         try:
             # Always ensure we have page token for posting
             self._ensure_page_token()
-            
+
             if not os.path.exists(image_path):
                 logger.error(f"Image file not found: {image_path}")
                 return None
-            
+
             # Step 1: Upload photo
             endpoint = f"{self.page_id}/photos"
             files = {'file': open(image_path, 'rb')}
             data = {}
-            
+
             if message:
                 data['message'] = message
-            
+
             if scheduled_time:
                 from datetime import datetime as dt, timezone
                 dt_obj = dt.fromisoformat(scheduled_time.replace('Z', '+00:00'))
@@ -232,11 +232,11 @@ class FacebookAutomation:
                 if dt_obj.tzinfo is None:
                     dt_obj = dt_obj.replace(tzinfo=timezone.utc)
                 timestamp = int(dt_obj.timestamp())
-                
+
                 # Facebook requires scheduled posts to be at least 10 minutes in the future
                 current_timestamp = int(dt.now(timezone.utc).timestamp())
                 min_future_timestamp = current_timestamp + (10 * 60)  # 10 minutes
-                
+
                 if timestamp < current_timestamp:
                     logger.error(f"Scheduled time {scheduled_time} is in the past")
                     files['file'].close()
@@ -244,7 +244,7 @@ class FacebookAutomation:
                         'success': False,
                         'error': f'Scheduled time is in the past. Current time: {dt.now(timezone.utc).isoformat()}'
                     }
-                
+
                 if timestamp < min_future_timestamp:
                     logger.error(f"Scheduled time must be at least 10 minutes in the future. Minimum: {dt.fromtimestamp(min_future_timestamp, tz=timezone.utc).isoformat()}")
                     files['file'].close()
@@ -252,21 +252,21 @@ class FacebookAutomation:
                         'success': False,
                         'error': 'Facebook requires scheduled posts to be at least 10 minutes in the future'
                     }
-                
+
                 data['published'] = False
                 data['scheduled_publish_time'] = timestamp
                 logger.info(f"Scheduling photo post for {scheduled_time} (timestamp: {timestamp}, {((timestamp - current_timestamp) / 60):.1f} minutes from now)")
-            
+
             url = f"{self.base_url}/{endpoint}"
             params = {"access_token": self.access_token}
             params.update(data)
-            
+
             logger.info(f"Uploading photo to Facebook Page: {self.page_id}")
             response = requests.post(url, params=params, files=files)
             files['file'].close()
             response.raise_for_status()
             result = response.json()
-            
+
             if result and "id" in result:
                 logger.info(f"Successfully posted photo to Facebook. Post ID: {result['id']}")
                 return {
@@ -280,9 +280,100 @@ class FacebookAutomation:
                     'success': False,
                     'error': 'Unknown error'
                 }
-                
+
         except Exception as e:
             logger.error(f"Error posting photo to Facebook: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def post_video(self, video_path: str, message: str = "", scheduled_time: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Post video to Facebook Page
+
+        Args:
+            video_path: Path to the video file
+            message: Caption for the video
+            scheduled_time: ISO format datetime string for scheduling (optional)
+
+        Returns:
+            dict: Post information if successful, None otherwise
+        """
+        try:
+            # Always ensure we have page token for posting
+            self._ensure_page_token()
+
+            if not os.path.exists(video_path):
+                logger.error(f"Video file not found: {video_path}")
+                return None
+
+            # Facebook video upload endpoint
+            endpoint = f"{self.page_id}/videos"
+            files = {'file': open(video_path, 'rb')}
+            data = {}
+
+            if message:
+                data['description'] = message
+
+            if scheduled_time:
+                from datetime import datetime as dt, timezone
+                dt_obj = dt.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                # If no timezone info, assume local time
+                if dt_obj.tzinfo is None:
+                    dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+                timestamp = int(dt_obj.timestamp())
+
+                # Facebook requires scheduled posts to be at least 10 minutes in the future
+                current_timestamp = int(dt.now(timezone.utc).timestamp())
+                min_future_timestamp = current_timestamp + (10 * 60)  # 10 minutes
+
+                if timestamp < current_timestamp:
+                    logger.error(f"Scheduled time {scheduled_time} is in the past")
+                    files['file'].close()
+                    return {
+                        'success': False,
+                        'error': f'Scheduled time is in the past. Current time: {dt.now(timezone.utc).isoformat()}'
+                    }
+
+                if timestamp < min_future_timestamp:
+                    logger.error(f"Scheduled time must be at least 10 minutes in the future. Minimum: {dt.fromtimestamp(min_future_timestamp, tz=timezone.utc).isoformat()}")
+                    files['file'].close()
+                    return {
+                        'success': False,
+                        'error': 'Facebook requires scheduled posts to be at least 10 minutes in the future'
+                    }
+
+                data['published'] = False
+                data['scheduled_publish_time'] = timestamp
+                logger.info(f"Scheduling video post for {scheduled_time} (timestamp: {timestamp}, {((timestamp - current_timestamp) / 60):.1f} minutes from now)")
+
+            url = f"{self.base_url}/{endpoint}"
+            params = {"access_token": self.access_token}
+            params.update(data)
+
+            logger.info(f"Uploading video to Facebook Page: {self.page_id}")
+            response = requests.post(url, params=params, files=files)
+            files['file'].close()
+            response.raise_for_status()
+            result = response.json()
+
+            if result and "id" in result:
+                logger.info(f"Successfully posted video to Facebook. Post ID: {result['id']}")
+                return {
+                    'success': True,
+                    'post_id': result['id'],
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                logger.error("Failed to post video to Facebook")
+                return {
+                    'success': False,
+                    'error': 'Unknown error'
+                }
+
+        except Exception as e:
+            logger.error(f"Error posting video to Facebook: {e}")
             return {
                 'success': False,
                 'error': str(e)
