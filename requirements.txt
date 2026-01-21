@@ -6,7 +6,7 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 python-decouple==3.8
 pydantic==1.10.5
-pydantic-settings==0.2.0
+pydantic-settings==0.2.5
 httpx==0.25.2
 aiofiles==23.2.1
 jinja2==3.1.2
