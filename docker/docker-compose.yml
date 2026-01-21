@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hive-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the gemini_automation directory for persistent auth data
+      - ./gemini_automation/gemini_automation/auth:/app/gemini_automation/gemini_automation/auth
+      # Mount downloaded content directory
+      - ./downloaded_content:/app/downloaded_content
+      # Mount database
+      - ./social_media_automation.db:/app/social_media_automation.db
+      # Mount logs
+      - ./logs:/app/logs
+    environment:
+      - DATABASE_URL=sqlite:///./social_media_automation.db
+      - SECRET_KEY=your-secret-key-change-this-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DISPLAY=:99
+    networks:
+      - hive-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    container_name: hive-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    networks:
+      - hive-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # Nginx Reverse Proxy (Optional - for production)
+  nginx:
+    image: nginx:alpine
+    container_name: hive-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - hive-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    profiles:
+      - production
+
+  # Database (SQLite is file-based, but we can add PostgreSQL for production)
+  # Uncomment below for PostgreSQL in production
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: hive-db
+  #   environment:
+  #     POSTGRES_DB: hive
+  #     POSTGRES_USER: hiveuser
+  #     POSTGRES_PASSWORD: hivepass
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - hive-network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  hive-network:
+    driver: bridge

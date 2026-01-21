@@ -1,0 +1,52 @@
+# ===========================================
+# Docker Compose Override for Development
+# ===========================================
+# This file is automatically merged with docker-compose.yml
+# Use this for development-specific configurations
+
+version: '3.8'
+
+services:
+  backend:
+    # Mount source code for live reload
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - RELOAD=true
+    # Override command to enable reload
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend:
+    # Mount source code for hot reload
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    # Override command to enable hot reload
+    command: ["npm", "start"]
+
+  # Add development database (optional)
+  # Uncomment to use PostgreSQL for development
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: hive-db-dev
+  #   environment:
+  #     POSTGRES_DB: hive_dev
+  #     POSTGRES_USER: hiveuser
+  #     POSTGRES_PASSWORD: hivepass
+  #   volumes:
+  #     - postgres_dev_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - hive-network
+  #   profiles:
+  #     - development
+
+# volumes:
+#   postgres_dev_data:
