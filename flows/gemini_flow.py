@@ -156,13 +156,88 @@ async def run_gemini_task(page, prompt, task_type, out_dir, platforms=None):
                     return save_path
 
             except Exception as download_err:
-                print(f"Standard download failed, trying direct URL capture...")
-                # FALLBACK: Directly grab the video source URL
-                video_src = await page.locator("video").first.get_attribute("src")
-                if video_src:
-                    print(f"Captured Direct Video URL: {video_src}")
-                    return video_src
-                raise download_err
+                print(f"Standard download failed: {download_err}")
+                print("Attempting alternative download methods...")
+
+                # Try multiple fallback approaches
+                try:
+                    # Approach 1: Try different download button selectors
+                    alt_selectors = [
+                        "button[aria-label*='Download']",
+                        "[mattooltip*='Download video']",
+                        "button:has-text('Download')",
+                        ".download-button",
+                        "[data-testid*='download']"
+                    ]
+
+                    for selector in alt_selectors:
+                        try:
+                            download_buttons = await page.locator(selector).all()
+                            if download_buttons:
+                                print(f"Trying download with selector: {selector}")
+                                async with page.expect_download(timeout=60000) as download_info:
+                                    await download_buttons[0].click(force=True)
+
+                                download = download_info.value
+                                save_path = os.path.join(out_dir, f"VIDEO_ALT_{int(time.time())}.mp4")
+                                await download.save_as(save_path)
+                                print(f"Alternative download successful: {save_path}")
+                                return save_path
+                        except Exception as sel_err:
+                            print(f"Selector {selector} failed: {sel_err}")
+                            continue
+
+                    # Approach 2: Try keyboard shortcut (Ctrl+S or Cmd+S)
+                    print("Trying keyboard download shortcut...")
+                    await page.keyboard.press("Control+s")  # or "Meta+s" for Mac
+                    await asyncio.sleep(2)
+
+                    # Check if download dialog appeared and try to save
+                    try:
+                        async with page.expect_download(timeout=30000) as download_info:
+                            await page.keyboard.press("Enter")  # Press Enter to save
+
+                        download = download_info.value
+                        save_path = os.path.join(out_dir, f"VIDEO_KB_{int(time.time())}.mp4")
+                        await download.save_as(save_path)
+                        print(f"Keyboard download successful: {save_path}")
+                        return save_path
+                    except Exception as kb_err:
+                        print(f"Keyboard download failed: {kb_err}")
+
+                    # Approach 3: Extract video blob URL and download via fetch
+                    print("Trying video blob extraction...")
+                    video_blob_url = await page.evaluate("""
+                        () => {
+                            const video = document.querySelector('video');
+                            if (video && video.src && video.src.startsWith('blob:')) {
+                                return video.src;
+                            }
+                            return null;
+                        }
+                    """)
+
+                    if video_blob_url:
+                        print(f"Found video blob URL: {video_blob_url}")
+                        # Blob URLs can't be downloaded directly, but we can try to save them
+                        # This is complex and may not work reliably
+
+                    # Final fallback: Return the page URL for manual handling
+                    print("All download methods failed. Returning video page URL for manual download.")
+                    current_url = page.url
+
+                    # Save URL to file for manual download
+                    url_file = os.path.join(out_dir, f"VIDEO_URL_{int(time.time())}.txt")
+                    with open(url_file, 'w') as f:
+                        f.write(f"Video URL: {current_url}\n")
+                        f.write("Please download the video manually from Gemini interface.\n")
+
+                    print(f"Saved video URL to: {url_file}")
+                    return url_file
+
+                except Exception as fallback_err:
+                    print(f"All fallback methods failed: {fallback_err}")
+                    raise download_err
 
         except Exception as e:
             error_img = os.path.join(out_dir, "video_error.png")

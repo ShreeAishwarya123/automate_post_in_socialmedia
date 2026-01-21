@@ -719,9 +719,16 @@ async def generate_and_post_with_gemini(
                             if not instagram.login():
                                 raise Exception("Instagram login failed")
 
-                            if content_type.upper() == "IMAGE" and local_path and os.path.exists(local_path):
+                            # Check if we have a valid media file
+                            if not local_path or not os.path.exists(local_path):
+                                raise Exception(f"No valid media file available for {content_type}")
+
+                            if content_type.upper() == "IMAGE":
                                 result_api = instagram.post_photo(local_path, post_caption)
-                            elif content_type.upper() == "VIDEO" and local_path and os.path.exists(local_path):
+                            elif content_type.upper() == "VIDEO":
+                                # Validate video before posting
+                                if not validate_video_file(local_path):
+                                    raise Exception(f"Video file is corrupted or invalid: {local_path}")
                                 result_api = instagram.post_reels(local_path, post_caption)
                             else:
                                 raise Exception(f"Unsupported content for Instagram: {content_type}")
@@ -743,9 +750,16 @@ async def generate_and_post_with_gemini(
                                 cred.credential_data.get("page_id")
                             )
 
-                            if content_type.upper() == "IMAGE" and local_path and os.path.exists(local_path):
+                            # Check if we have a valid media file for media content
+                            if content_type.upper() in ["IMAGE", "VIDEO"]:
+                                if not local_path or not os.path.exists(local_path):
+                                    raise Exception(f"No valid media file available for {content_type}")
+                                if content_type.upper() == "VIDEO" and not validate_video_file(local_path):
+                                    raise Exception(f"Video file is corrupted or invalid: {local_path}")
+
+                            if content_type.upper() == "IMAGE":
                                 result_api = facebook.post_photo(local_path, post_caption)
-                            elif content_type.upper() == "VIDEO" and local_path and os.path.exists(local_path):
+                            elif content_type.upper() == "VIDEO":
                                 result_api = facebook.post_video(local_path, post_caption)
                             elif content_type.upper() == "TEXT":
                                 result_api = facebook.post_text(post_caption)
@@ -798,7 +812,12 @@ async def generate_and_post_with_gemini(
                             if not youtube.authenticate():
                                 raise Exception("YouTube authentication failed")
 
-                            if content_type.upper() == "VIDEO" and local_path and os.path.exists(local_path):
+                            if content_type.upper() == "VIDEO":
+                                if not local_path or not os.path.exists(local_path):
+                                    raise Exception("No valid video file available for YouTube")
+                                if not validate_video_file(local_path):
+                                    raise Exception(f"Video file is corrupted or invalid: {local_path}")
+
                                 # Extract title and description from post content
                                 title = f"AI Generated Video - {prompt[:50]}{'...' if len(prompt) > 50 else ''}"
                                 description = post_caption
