@@ -36,6 +36,9 @@ except ImportError:
 # Import scheduler
 from scheduler import get_scheduler
 
+# Import video utilities
+from video_utils import ensure_video_playable, validate_video_file
+
 router = APIRouter()
 
 # Pydantic models
@@ -653,6 +656,17 @@ async def generate_and_post_with_gemini(
                             local_path = video_path
                             print(f"DEBUG: Downloaded video to: {local_path}")
 
+                            # Validate and repair video if needed
+                            print(f"DEBUG: Validating downloaded video: {local_path}")
+                            validated_path = ensure_video_playable(local_path)
+                            if validated_path != local_path:
+                                print(f"DEBUG: Video was repaired, using: {validated_path}")
+                                local_path = validated_path
+                            elif validated_path is None:
+                                raise Exception(f"Downloaded video is corrupted and could not be repaired: {local_path}")
+                            else:
+                                print(f"DEBUG: Video validation successful: {local_path}")
+
                             if drive:
                                 drive_link = drive.upload_file(local_path)
                                 print(f"DEBUG: Drive link: {drive_link}")
@@ -773,6 +787,45 @@ async def generate_and_post_with_gemini(
                                 })
                             else:
                                 raise Exception("LinkedIn posting failed")
+
+                        elif platform == "youtube":
+                            from platforms.youtube import YouTubeAutomation
+                            youtube = YouTubeAutomation(
+                                cred.credential_data.get("client_secrets_file"),
+                                cred.credential_data.get("credentials_file")
+                            )
+
+                            if not youtube.authenticate():
+                                raise Exception("YouTube authentication failed")
+
+                            if content_type.upper() == "VIDEO" and local_path and os.path.exists(local_path):
+                                # Extract title and description from post content
+                                title = f"AI Generated Video - {prompt[:50]}{'...' if len(prompt) > 50 else ''}"
+                                description = post_caption
+
+                                # Extract tags from Gemini metadata if available
+                                tags = []
+                                # You could enhance this to extract tags from Gemini response
+
+                                result_api = youtube.upload_video(
+                                    local_path,
+                                    title,
+                                    description,
+                                    tags,
+                                    category_id='22'  # People & Blogs
+                                )
+
+                                if result_api and result_api.get("success"):
+                                    results.append({
+                                        "platform": platform,
+                                        "status": "posted",
+                                        "post_url": f"https://youtube.com/watch?v={result_api.get('video_id', '')}",
+                                        "post_id": result_api.get("video_id", f"{platform}_{db_post.id}")
+                                    })
+                                else:
+                                    raise Exception("YouTube upload failed")
+                            else:
+                                raise Exception("YouTube only supports video content")
 
                         else:
                             raise Exception(f"Platform {platform} not implemented for Gemini posts")
